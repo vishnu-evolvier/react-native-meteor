@@ -103,7 +103,6 @@ module.exports = {
       //   }
       // }
 
-
       console.info('Connected to DDP server.');
       this._loadInitialUser().then(() => {
         this._subscriptionsRestart();
