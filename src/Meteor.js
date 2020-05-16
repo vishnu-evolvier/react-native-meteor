@@ -11,11 +11,8 @@ import Data from './Data';
 import { Collection } from './Collection';
 import call from './Call';
 
-import Mixin from './components/Mixin';
-import MeteorListView from './components/ListView';
-import MeteorComplexListView from './components/ComplexListView';
-import createContainer from './components/createContainer';
 import withTracker from './components/ReactMeteorData';
+import useTracker from './components/TrackerHook';
 import composeWithTracker from './components/composeWithTracker';
 
 import FSCollection from './CollectionFS/FSCollection';
@@ -31,8 +28,6 @@ module.exports = {
   Accounts,
   Tracker: Trackr,
   EJSON,
-  MeteorListView,
-  MeteorComplexListView,
   ReactiveDict,
   Collection,
   FSCollectionImagesPreloader:
@@ -41,13 +36,10 @@ module.exports = {
     return new Collection(name, options);
   },
   FSCollection,
-  createContainer,
   withTracker,
+  useTracker,
   getData() {
     return Data;
-  },
-  connectMeteor(reactClass) {
-    return reactMixin.onClass(reactClass, Mixin);
   },
   ...User,
   status() {
@@ -176,7 +168,10 @@ module.exports = {
       const call = Data.calls.find(call => call.id == message.id);
       if (typeof call.callback == 'function')
         call.callback(message.error, message.result);
-      Data.calls.splice(Data.calls.findIndex(call => call.id == message.id), 1);
+      Data.calls.splice(
+        Data.calls.findIndex(call => call.id == message.id),
+        1
+      );
     });
 
     Data.ddp.on('nosub', message => {

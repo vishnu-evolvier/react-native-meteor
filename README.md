@@ -1,76 +1,56 @@
-# react-native-meteor
-
-[![react-native-meteor](http://img.shields.io/npm/dm/react-native-meteor.svg)](https://www.npmjs.org/package/react-native-meteor) [![npm version](https://badge.fury.io/js/react-native-meteor.svg)](http://badge.fury.io/js/react-native-meteor) [![Dependency Status](https://david-dm.org/inProgress-team/react-native-meteor.svg)](https://david-dm.org/inProgress-team/react-native-meteor)
+# @ajaybhatia/react-native-meteor
 
 Meteor-like methods for React Native.
-
-If you have questions, you can open a new issue in the repository or ask in the our Gitter chat:  
-https://gitter.im/react-native-meteor/Lobby
 
 ## What is it for ?
 
 The purpose of this library is :
 
-* To set up and maintain a ddp connection with a ddp server, freeing the developer from having to do it on their own.
-* Be fully compatible with react-native and help react-native developers.
-* **To match with [Meteor documentation](http://docs.meteor.com/) used with React.**
+- To set up and maintain a ddp connection with a ddp server, freeing the developer from having to do it on their own.
+- Be fully compatible with react-native and help react-native developers.
+- **To match with [Meteor documentation](http://docs.meteor.com/) used with React.**
 
 ## Install
 
 ```
-yarn add react-native-meteor
+yarn add @ajaybhatia/react-native-meteor
 ```
 
 or
 
 ```
-npm i --save react-native-meteor
+npm i --save @ajaybhatia/react-native-meteor
 ```
 
-[!! See detailed installation guide](https://github.com/inProgress-team/react-native-meteor/blob/master/docs/Install.md)
+[!! See detailed installation guide](https://github.com/ajaybhatia/react-native-meteor/blob/master/docs/Install.md)
 
-## Compatibility notes
+### Warning < RN 0.57.8 Android bug
 
-Since RN 0.26.0 you have to use ws or wss protocol to connect to your meteor server. http is not working on Android.
+There was a [bug in the react native websocket android implementation](https://github.com/react-native-community/react-native-releases/blob/master/CHANGELOG.md#android-specific) that meant the close event wasn't being received from the server. Therefore RN versions prior to React-native 0.57.8 will not detect users being logged out from the server side. There could also be other bugs resulting from this.
 
-It is recommended to always use the latest version of react-native-meteor compatible with your RN version:
-
-* For RN > 0.49, use `react-native-meteor@latest`
-* For RN > 0.45, use `react-native-meteor@1.1.x`
-* For RN = 0.45, use `react-native-meteor@1.0.6`
-* For RN < 0.45, you can use version `react-native-meteor@1.0.3` in case or problems.
-
-## Example usage
+## Example usage (with withTracker)
 
 ```javascript
-import React, { Component } from 'react';
-import { View, Text } from 'react-native';
-import Meteor, { withTracker, MeteorListView } from 'react-native-meteor';
+import React from 'react';
+import { View, Text, FlatList } from 'react-native';
+import Meteor, { withTracker } from '@ajaybhatia/react-native-meteor';
 
 Meteor.connect('ws://192.168.X.X:3000/websocket'); //do this only once
 
-class App extends Component {
-  renderRow(todo) {
-    return <Text>{todo.title}</Text>;
-  }
-  render() {
-    const { settings, todosReady } = this.props;
+const App = ({ settings, todos, todosReady }) => {
+  return (
+    <View>
+      <Text>{settings.title}</Text>
+      {!todosReady && <Text>Not ready</Text>}
 
-    return (
-      <View>
-        <Text>{settings.title}</Text>
-        {!todosReady && <Text>Not ready</Text>}
-
-        <MeteorListView
-          collection="todos"
-          selector={{ done: true }}
-          options={{ sort: { createdAt: -1 } }}
-          renderRow={this.renderRow}
-        />
-      </View>
-    );
-  }
-}
+      <FlatList
+        data={todos}
+        keyExtractor={item => item._id}
+        renderItem={({ item }) => <Text>{item.title}</Text>}
+      />
+    </View>
+  );
+};
 
 export default withTracker(params => {
   const handle = Meteor.subscribe('todos');
@@ -78,9 +58,57 @@ export default withTracker(params => {
 
   return {
     todosReady: handle.ready(),
+    todos: Meteor.collection('todos').find({}, { sort: { createdAt: -1 } }),
     settings: Meteor.collection('settings').findOne(),
   };
 })(App);
+```
+
+## Example usage (with useTracker hook)
+
+```javascript
+import React from 'react';
+import { View, Text, FlatList } from 'react-native';
+import Meteor, { useTracker } from '@ajaybhatia/react-native-meteor';
+
+Meteor.connect('ws://192.168.X.X:3000/websocket'); //do this only once
+
+export default App = () => {
+  const loading = useTracker(() => {
+    const handle = Meteor.subscribe('todos');
+    Meteor.subscribe('settings');
+
+    return !handle.ready();
+  }, []);
+
+  const todos = useTracker(
+    () => Meteor.collection('todos').find({}, { sort: { createdAt: -1 } }),
+    [loading]
+  );
+  const settings = useTracker(() => Meteor.collection('settings').findOne(), [
+    loading,
+  ]);
+
+  if (loading) {
+    return (
+      <View>
+        <Text>Not ready</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      {loading && <Text>Not ready</Text>}
+
+      <FlatList
+        data={todos}
+        keyExtractor={item => item._id}
+        renderItem={({ item }) => <Text>{item.title}</Text>}
+      />
+    </View>
+  );
+};
 ```
 
 ## Documentation
@@ -91,10 +119,9 @@ export default withTracker(params => {
 
 ## Author
 
-* Théo Mathieu ([@Mokto](https://github.com/Mokto)) from [inProgress](https://in-progress.io)
-* Nicolas Charpentier ([@charpeni](https://github.com/charpeni))
-
-![image](https://user-images.githubusercontent.com/7189823/40546483-68c5e734-5ffd-11e8-8dd4-bdd11d9fbc93.png)
+- Ajay Bhatia ([@ajaybhatia](https://github.com/ajaybhatia))
+- Théo Mathieu ([@Mokto](https://github.com/Mokto)) from [inProgress](https://in-progress.io)
+- Nicolas Charpentier ([@charpeni](https://github.com/charpeni))
 
 ## Want to help ?
 
